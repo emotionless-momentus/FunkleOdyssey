@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Funkle Odyssey v0.1</title>
+    <style>
+        body { 
+            margin: 0;
+            overflow: hidden;
+            font-family: 'Papyrus', fantasy;
+            background: #1a1a1a;
+            color: #gold;
+        }
+        #canvasContainer {
+            position: fixed;
+            width: 100vw;
+            height: 100vh;
+        }
+        .controlPanel {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: rgba(0,0,0,0.8);
+            padding: 15px;
+            border-radius: 10px;
+            border: 2px solid #FFD700;
+        }
+        input[type="number"] {
+            width: 60px;
+            background: #333;
+            color: #FFD700;
+            border: 1px solid #555;
+        }
+        button {
+            background: linear-gradient(to right, #4B0082, #8A2BE2);
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div id="canvasContainer"></div>
+    
+    <div class="controlPanel">
+        <h2>🗿 Idea Forge</h2>
+        <form id="ideaForm">
+            <input type="text" id="ideaName" placeholder="Idea Name" required>
+            <textarea id="ideaDesc" placeholder="Homeric description..." rows="3"></textarea><br>
+            <label>AI Contribution: <input type="number" id="aiInput" min="0" max="100" value="30" required>%</label>
+            <label>Human Effort: <input type="number" id="humanEffort" min="1" value="10" required> hours</label>
+            <label>Social Impact: <input type="number" id="socialImpact" min="1" max="10" value="5" required>/10</label>
+            <button type="submit">Forge Idea 🔥</button>
+        </form>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        // Three.js Scene Setup
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.getElementById('canvasContainer').appendChild(renderer.domElement);
+
+        // Lighting
+        const ambientLight = new THREE.AmbientLight(0x404040);
+        scene.add(ambientLight);
+        const directionalLight = new THREE.DirectionalLight(0xFFD700, 0.5);
+        directionalLight.position.set(5, 5, 5);
+        scene.add(directionalLight);
+
+        // Idea Storage
+        let ideas = JSON.parse(localStorage.getItem('odysseyIdeas') || [];
+        
+        // Form Handler
+        document.getElementById('ideaForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const newIdea = {
+                name: document.getElementById('ideaName').value,
+                desc: document.getElementById('ideaDesc').value,
+                ai: parseInt(document.getElementById('aiInput').value),
+                human: parseInt(document.getElementById('humanEffort').value),
+                impact: parseInt(document.getElementById('socialImpact').value),
+                timestamp: Date.now()
+            };
+            ideas.push(newIdea);
+            localStorage.setItem('odysseyIdeas', JSON.stringify(ideas));
+            createIdeaSphere(newIdea);
+            document.getElementById('ideaForm').reset();
+        });
+
+        // 3D Idea Visualization
+        function createIdeaSphere(idea) {
+            const geometry = new THREE.IcosahedronGeometry(
+                Math.sqrt(idea.human) * 0.3, // Size by human effort
+                Math.floor(idea.impact)       // Detail by social impact
+            );
+            
+            const material = new THREE.MeshPhongMaterial({
+                color: new THREE.Color().setHSL(idea.ai/100, 0.7, 0.5), // Hue by AI %
+                emissive: 0x4B0082,
+                shininess: 100
+            });
+
+            const ideaNode = new THREE.Mesh(geometry, material);
+            
+            // Position based on impact and AI
+            ideaNode.position.set(
+                (idea.impact - 5) * 2,  // X-axis: Social impact
+                idea.ai / 20,           // Y-axis: AI contribution
+                -Math.abs(idea.human)   // Z-axis: Human effort
+            );
+
+            scene.add(ideaNode);
+        }
+
+        // Initialize existing ideas
+        ideas.forEach(idea => createIdeaSphere(idea));
+
+        // Camera Position
+        camera.position.z = 15;
+
+        // Animation Loop
+        function animate() {
+            requestAnimationFrame(animate);
+            scene.rotation.y += 0.005;
+            renderer.render(scene, camera);
+        }
+        animate();
+
+        // Responsive Handling
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+    </script>
+</body>
+</html>
